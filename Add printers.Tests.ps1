@@ -23,7 +23,8 @@ BeforeAll {
         Error           = $null
     }
     
-    $testDriver = 'HP Universal Printing PCL 6'
+    # $testDriver = 'HP Universal Printing PCL 6'
+    $testDriver ='HP Officejet Pro L7700 Series'
    
     Function Remove-TestPrintersHC {
         Get-Printer -Name "$($testPrinter.PrinterName)*" -EA Ignore | Remove-Printer -EA Ignore
@@ -55,8 +56,6 @@ BeforeAll {
     Remove-TestPrintersHC
     Remove-TestPrinterPortsHC
 }
-
-
 Describe 'Pester pre tests' {
     Context 'Drivers' {
         It 'the test driver should be different' {
@@ -73,6 +72,14 @@ Describe 'Pester pre tests' {
 Describe 'Drivers' {
     Context 'when the driver is not installed' {
         BeforeAll {
+            Remove-TestPrintersHC
+            Remove-PrinterDriver -Name $testDriver -EA Ignore
+            Get-PrinterDriver -Name $testDriver -EA Ignore | 
+            Should -BeNullOrEmpty
+
+            $testP1 = Copy-ObjectHC -Name $testPrinter
+            $testP1.DriverName = $testDriver
+
             Mock Add-Printer
             Mock Add-PrinterDriver -ParameterFilter { $Name -eq $testDriver }
             Mock Get-PrintConfiguration {
@@ -89,14 +96,6 @@ Describe 'Drivers' {
             }
             Mock Set-PrintConfiguration
             Mock Set-Printer
-
-            Remove-TestPrintersHC
-            Remove-PrinterDriver -Name $testDriver -EA Ignore
-            Get-PrinterDriver -Name $testDriver -EA Ignore | 
-            Should -BeNullOrEmpty
-
-            $testP1 = Copy-ObjectHC -Name $testPrinter
-            $testP1.DriverName = $testDriver
 
             $testParams = @{
                 Printers = $testP1
