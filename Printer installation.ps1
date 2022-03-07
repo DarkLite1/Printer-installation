@@ -287,13 +287,13 @@ Begin {
         Write-EventLog @EventVerboseParams -Message "Import Excel sheet '$ImportFile'"
 
         $PrintersWorksheet = @(Import-Excel -Path $ImportFile -WorksheetName 'Printers' |
-            Remove-ImportExcelHeaderProblemOnEmtpySheetHC |
+            Remove-ImportExcelHeaderProblemOnEmptySheetHC |
             Select-Object -Property @{N = 'Status'; E = { $null } }, *,
             @{N = 'Action'; E = { , @() } },
             @{N = 'Error'; E = { $null } } -ExcludeProperty Status, Action, Error)
 
         $RemoveWorksheet = @(Import-Excel -Path $ImportFile -WorksheetName 'Remove' |
-            Remove-ImportExcelHeaderProblemOnEmtpySheetHC |
+            Remove-ImportExcelHeaderProblemOnEmptySheetHC |
             Select-Object -Property @{N = 'Status'; E = { $null } }, *,
             @{N = 'Action'; E = { , @() } },
             @{N = 'Error'; E = { , @() } } -ExcludeProperty Status, Action, Error )
