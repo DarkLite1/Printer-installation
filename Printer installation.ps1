@@ -32,8 +32,8 @@ Param (
     [String]$ScriptRemovePrinters = 'Remove printers.ps1',
     [String]$ScriptRemovePrintersWMI = 'Remove printers WMI.ps1',
     [String]$ScriptRemoveUnusedPorts = 'Remove unused printer ports.ps1',
-    [String]$LogFolder = $env:POWERSHELL_LOG_FOLDER,
-    [String]$ScriptAdmin = $env:POWERSHELL_SCRIPT_ADMIN
+    [String]$LogFolder = "$env:POWERSHELL_LOG_FOLDER\Printers\Printer installation\$ScriptName",
+    [String[]]$ScriptAdmin = $env:POWERSHELL_SCRIPT_ADMIN
 )
 
 Begin {
@@ -162,15 +162,20 @@ Begin {
             throw "The remove unused printer ports script file '$ScriptRemoveUnusedPorts' was not found"
         }
         #endregion
-
+        
         #region Logging
-        $LogParams = @{
-            LogFolder    = New-FolderHC -Path $LogFolder -ChildPath "Printers\Printer installation\$ScriptName"
-            Name         = $ScriptName
-            Date         = 'ScriptStartTime'
-            NoFormatting = $true
+        try {
+            $logParams = @{
+                LogFolder    = New-Item -Path $LogFolder -ItemType 'Directory' -Force -ErrorAction 'Stop'
+                Name         = $ScriptName
+                Date         = 'ScriptStartTime'
+                NoFormatting = $true
+            }
+            $logFile = New-LogFileNameHC @LogParams
         }
-        $LogFile = New-LogFileNameHC @LogParams
+        Catch {
+            throw "Failed creating the log folder '$LogFolder': $_"
+        }
         #endregion
 
         #region Import file properties
