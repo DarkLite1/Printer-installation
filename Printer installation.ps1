@@ -33,7 +33,10 @@ Param (
     [String]$ScriptRemovePrintersWMI = 'Remove printers WMI.ps1',
     [String]$ScriptRemoveUnusedPorts = 'Remove unused printer ports.ps1',
     [String]$LogFolder = "$env:POWERSHELL_LOG_FOLDER\Printers\Printer installation\$ScriptName",
-    [String[]]$ScriptAdmin = $env:POWERSHELL_SCRIPT_ADMIN
+    [String[]]$ScriptAdmin = @(
+        $env:POWERSHELL_SCRIPT_ADMIN,
+        $env:POWERSHELL_SCRIPT_ADMIN_BACKUP
+    )
 )
 
 Begin {

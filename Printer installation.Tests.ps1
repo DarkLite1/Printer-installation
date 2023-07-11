@@ -1,15 +1,7 @@
 #Requires -Modules Pester, PrintManagement
 #Requires -Version 5.1
 
-BeforeAll {
-    $MailAdminParams = {
-        ($To -eq $ScriptAdmin) -and ($Priority -eq 'High') -and ($Subject -eq 'FAILURE')
-    }
-    
-    $MailUsersParams = {
-        ($To -eq $MailTo) -and ($Priority -eq 'High') -and ($Subject -like 'FAILURE - Incorrect input')
-    }
-    
+BeforeAll {    
     $testPrintersWorksheet = @(
         [PSCustomObject]@{
             PrinterName     = 'PesterTestPrinter'
@@ -42,10 +34,19 @@ BeforeAll {
 
     $testScript = $PSCommandPath.Replace('.Tests.ps1', '.ps1')
     $testParams = @{
-        ScriptName = 'Test (Brecht)'
-        MailTo     = 'BobLeeSwagger@shooter.net'
-        ImportFile = New-Item "TestDrive:/Printers.xlsx" -ItemType File
-        LogFolder  = New-Item "TestDrive:/log" -ItemType Directory
+        ScriptName  = 'Test (Brecht)'
+        MailTo      = 'BobLeeSwagger@shooter.net'
+        ImportFile  = New-Item "TestDrive:/Printers.xlsx" -ItemType File
+        LogFolder   = New-Item "TestDrive:/log" -ItemType Directory
+        ScriptAdmin = 'admin@contoso.com'
+    }
+
+    $MailAdminParams = {
+        ($To -eq $testParams.ScriptAdmin) -and ($Priority -eq 'High') -and ($Subject -eq 'FAILURE')
+    }
+    
+    $MailUsersParams = {
+        ($To -eq $MailTo) -and ($Priority -eq 'High') -and ($Subject -like 'FAILURE - Incorrect input')
     }
 
     Mock Import-Excel
@@ -88,7 +89,7 @@ Describe 'Import file' {
                 ).ForEach( { @{Name = $_ } })
             }
 
-            It '<Name>' -forEach $forEach {
+            It '<Name>' -ForEach $forEach {
                 Param (
                     $Name
                 )
@@ -118,7 +119,7 @@ Describe 'Import file' {
                 ).ForEach( { @{Name = $_ } })
             }
 
-            It '<Name>' -forEach $forEach {
+            It '<Name>' -ForEach $forEach {
                 Param (
                     $Name
                 )
@@ -227,12 +228,12 @@ Describe 'Printers worksheet' {
             }
         }
         Context 'a mandatory property is missing' {
-            It '<name>' -forEach @(
-                @{name = 'DriverName'},
-                @{name = 'PortHostAddress'},
-                @{name = 'PortName'},
-                @{name = 'PrinterName'},
-                @{name = 'ServerName'}
+            It '<name>' -ForEach @(
+                @{name = 'DriverName' },
+                @{name = 'PortHostAddress' },
+                @{name = 'PortName' },
+                @{name = 'PrinterName' },
+                @{name = 'ServerName' }
             ) {
                 Mock Import-Excel {
                     $testP1 = Copy-ObjectHC -Name $testPrintersWorksheet[0]
@@ -264,11 +265,11 @@ Describe 'Printers worksheet' {
             } -Tag test
         } 
         Context 'a boolean property is not TRUE, FALSE or NULL' {
-            It '<_>' -forEach @(
-                @{name = 'Color'},
-                @{name = 'Collate'},
-                @{name = 'KeepPrintedJobs'},
-                @{name = 'Published'}
+            It '<_>' -ForEach @(
+                @{name = 'Color' },
+                @{name = 'Collate' },
+                @{name = 'KeepPrintedJobs' },
+                @{name = 'Published' }
             ) {
                 foreach ($testVal in @($true, $false, $null)) {
                     Mock Import-Excel {
@@ -347,10 +348,10 @@ Describe 'Printers worksheet' {
             }
         }
         Context 'a mandatory property is missing' {
-            It '<Name>' -forEach @(
-                @{name = 'ServerName'},
-                @{name = 'PrinterName'},
-                @{name = 'DriverName'}
+            It '<Name>' -ForEach @(
+                @{name = 'ServerName' },
+                @{name = 'PrinterName' },
+                @{name = 'DriverName' }
             ) {
                 Mock Import-Excel {
                     $testF1 = Copy-ObjectHC -Name $testPrintersWorksheet[0]
@@ -369,10 +370,10 @@ Describe 'Printers worksheet' {
             } 
         }
         Context 'there is a space in' {
-            It '<Name>' -forEach @(
-                @{name = 'ServerName'},
-                @{name = 'PrinterName'},
-                @{name = 'ShareName'}
+            It '<Name>' -ForEach @(
+                @{name = 'ServerName' },
+                @{name = 'PrinterName' },
+                @{name = 'ShareName' }
             ) {
                 Mock Import-Excel {
                     $testF1 = Copy-ObjectHC -Name $testPrintersWorksheet[0]
@@ -526,7 +527,7 @@ Describe 'Remove worksheet' {
                 ).ForEach( { @{Name = $_ } })
             }
 
-            It '<Name>' -forEach $forEach {
+            It '<Name>' -ForEach $forEach {
                 Param (
                     $Name
                 )
@@ -551,7 +552,7 @@ Describe 'Remove worksheet' {
                     'PrinterName'
                 ).ForEach( { @{Name = $_ } })
             }
-            It '<Name>' -forEach $forEach {
+            It '<Name>' -ForEach $forEach {
                 Param (
                     $Name
                 )
