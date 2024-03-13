@@ -24,56 +24,58 @@ BeforeAll {
             Error       = $null
         }
     )
-    
+
     $testInstalledPrinters = @(
         [PSCustomObject]@{
             PrinterName     = $testPrinters[0].PrinterName
             DriverName      = $testDriverName
             PortName        = 'PesterTestPort1'
-            PortHostAddress = '5.10.10.1'
+            PortHostAddress = '5.5.10.1'
         }
         [PSCustomObject]@{
             PrinterName     = $testPrinters[1].PrinterName
             DriverName      = $testDriverName
             PortName        = 'PesterTestPort2'
-            PortHostAddress = '5.10.10.2'
+            PortHostAddress = '5.5.10.2'
         }
         [PSCustomObject]@{
             PrinterName     = $testPrinters[2].PrinterName
             DriverName      = $testDriverName
             PortName        = 'PesterTestPort2'
-            PortHostAddress = '5.10.10.2'
+            PortHostAddress = '5.5.10.2'
         }
     )
 
+    Get-Printer -Name 'Pester*' | Remove-Printer
+    Get-PrinterPort -Name 'Pester*' | Remove-PrinterPort
+
     $testScript = $PSCommandPath.Replace('.Tests.ps1', '.ps1')
 
-    Mock Invoke-Sqlcmd2
     Mock Send-MailHC
     Mock Write-EventLog
+}
+AfterAll {
+    Get-Printer -Name 'Pester*' | Remove-Printer
+    Get-PrinterPort -Name 'Pester*' | Remove-PrinterPort
 }
 
 Describe 'when a printer' {
     BeforeAll {
-        #region Install all printers
-        $testInstalledPrinters.ForEach( {
-                Remove-Printer -Name $_.PrinterName -EA Ignore
-            })
-        $testInstalledPrinters | Select-Object PortName -Unique | ForEach-Object {
-            Remove-PrinterPort -Name $_.PortName -EA Ignore
-        }
-        $testInstalledPrinters | Sort-Object PortName -Unique | ForEach-Object {
+        $testInstalledPrinters | Sort-Object 'PortName' -Unique |
+        ForEach-Object {
             Add-PrinterPort -Name $_.PortName -PrinterHostAddress $_.PortHostAddress
         }
-        $testInstalledPrinters.ForEach( {
+
+        $testInstalledPrinters.ForEach(
+            {
                 $testPrintParams = @{
                     Name       = $_.PrinterName
                     DriverName = $_.DriverName
                     PortName   = $_.PortName
                 }
                 Add-Printer @testPrintParams
-            })
-        #endregion
+            }
+        )
     }
     Context "has a print port that is not in use by another printer" {
         BeforeAll {
@@ -83,20 +85,20 @@ Describe 'when a printer' {
             .$testScript @testParams
         }
         It 'the printer queue is removed' {
-            Get-Printer | 
-            Where-Object Name -EQ $testInstalledPrinters[0].PrinterName | 
+            Get-Printer |
+            Where-Object Name -EQ $testInstalledPrinters[0].PrinterName |
             Should -BeNullOrEmpty
-        }
+        } -Tag test
         It 'the printer port is removed' {
-            Get-PrinterPort | 
-            Where-Object Name -EQ $testInstalledPrinters[0].PortName | 
+            Get-PrinterPort |
+            Where-Object Name -EQ $testInstalledPrinters[0].PortName |
             Should -BeNullOrEmpty
         }
         It "'Action' contains 'Removed printer queue'" {
             $Printers.Action | Should -Contain 'Removed printer queue'
         }
         It "'Action' contains 'Removed printer port'" {
-            $Printers.Action | 
+            $Printers.Action |
             Should -Contain "Removed port '$($testInstalledPrinters[0].PortName) > $($testInstalledPrinters[0].PortHostAddress)'"
         }
         It "'Status' is 'Removed'" {
@@ -117,16 +119,16 @@ Describe 'when a printer' {
             Get-Printer | Where-Object Name -EQ $testInstalledPrinters[1].PrinterName | Should -BeNullOrEmpty
         }
         It 'the printer port is not removed' {
-            Get-PrinterPort | 
-            Where-Object Name -EQ $testInstalledPrinters[1].PortName | 
+            Get-PrinterPort |
+            Where-Object Name -EQ $testInstalledPrinters[1].PortName |
             Should -Not -BeNullOrEmpty
         }
         It "'Error' is 'Port in use'" {
-            $Printers.Error | 
+            $Printers.Error |
             Should -Contain "Port '$($testInstalledPrinters[1].PortName) > $($testInstalledPrinters[1].PortHostAddress)' cannot be removed because it is in use by printers '$($testInstalledPrinters[2].PrinterName)'"
         }
         It "'Action' is not containing port removal" {
-            $Printers.Action | Where-Object { $_ -like '*port*' } | 
+            $Printers.Action | Where-Object { $_ -like '*port*' } |
             Should -BeNullOrEmpty
         }
         It "'Action' contains 'Removed printer queue'" {

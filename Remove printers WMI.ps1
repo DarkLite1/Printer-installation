@@ -2,12 +2,12 @@
 
 <#
 .SYNOPSIS
-    Remove printer queues on a print server that does not support the new 
+    Remove printer queues on a print server that does not support the new
     printer Cmdlets of module 'PrintManagement'.
 
 .DESCRIPTION
-    This script is intended to run on a local server. The print queues will be 
-    removed from the system. After the desired print queues are removed, the 
+    This script is intended to run on a local server. The print queues will be
+    removed from the system. After the desired print queues are removed, the
     ports that are unused will also be deleted.
 #>
 
@@ -19,9 +19,9 @@ Param (
 
 Process {
     Try {
-        $PreInstalledPorts = @(Get-WmiObject -ClassName 'Win32_TCPIPPrinterPort')
-        $PreInstalledPrinters = @(Get-WmiObject -ClassName 'Win32_printer' -Namespace 'root\CIMV2')
-        $RemovedPrinters = @()
+        $preInstalledPorts = Get-CimInstance -Class 'Win32_TCPIPPrinterPort'
+        $preInstalledPrinters = Get-CimInstance -Class 'Win32_printer'
+        $removedPrinters = @()
 
         #region Remove print queue
         foreach ($P in $Printers) {
@@ -30,12 +30,15 @@ Process {
             }
 
             Try {
-                if ($PrinterToRemove = $PreInstalledPrinters | Where-Object { $_.Name -eq $PrinterName }) {
-                    $null = $PrinterToRemove.CancelAllJobs()
-                    $PrinterToRemove.Delete()
+                if (
+                    $printerToRemove = $preInstalledPrinters | Where-Object {
+                        $_.Name -eq $PrinterName
+                    }
+                ) {
+                    $printerToRemove | Remove-CimInstance -ErrorAction Stop
 
                     $P.Action += 'Removed printer queue'
-                    $RemovedPrinters += $PrinterToRemove
+                    $removedPrinters += $printerToRemove
                 }
                 else {
                     $P.Error += 'Printer queue not found'
@@ -49,17 +52,21 @@ Process {
         #endregion
 
         #region Remove printer ports
-        $PostInstalledPrinters = @(Get-WmiObject -ClassName 'Win32_printer' -Namespace 'root\CIMV2')
+        $PostInstalledPrinters = @(Get-CimInstance -ClassName 'Win32_printer' -Namespace 'root\CIMV2')
         $PortsToRemove = @{ }
 
         Try {
-            foreach ($P in @($RemovedPrinters.PortName | Sort-Object -Unique)) {
-                $PortToRemove = $PreInstalledPorts | Where-Object { $_.Name -eq $P }
+            foreach ($P in @($removedPrinters.PortName | Sort-Object -Unique)) {
+                $PortToRemove = $preInstalledPorts | Where-Object { $_.Name -eq $P }
 
-                $PrePrintersWithPort = $PreInstalledPrinters | Where-Object { $_.PortName -eq $P } |
+                $PrePrintersWithPort = $preInstalledPrinters | Where-Object {
+                    $_.PortName -eq $P
+                } |
                 Select-Object -ExpandProperty 'Name'
 
-                $PostPrintersWithPort = $PostInstalledPrinters | Where-Object { $_.PortName -eq $P } |
+                $PostPrintersWithPort = $PostInstalledPrinters | Where-Object {
+                    $_.PortName -eq $P
+                } |
                 Select-Object -ExpandProperty 'Name'
 
                 $PortsToRemove.$P = @{
@@ -74,7 +81,8 @@ Process {
                 }
                 else {
                     Try {
-                        $PortToRemove.Delete()
+                        $PortToRemove | Remove-CimInstance -ErrorAction Stop
+
                         $PortsToRemove.$P.Action = "Removed port '$P > $($PortToRemove.HostAddress)'"
                     }
                     Catch {
@@ -84,14 +92,18 @@ Process {
             }
 
             foreach ($P in $PortsToRemove.GetEnumerator()) {
-                $Printers.Where( { $P.Value.PrePrintersWithPort -contains $_.PrinterName }).foreach( {
+                $Printers.Where(
+                    { $P.Value.PrePrintersWithPort -contains $_.PrinterName }
+                ).foreach(
+                    {
                         if ($P.Value.Error) {
                             $_.Error += $P.Value.Error
                         }
                         if ($P.Value.Action) {
                             $_.Action += $P.Value.Action
                         }
-                    })
+                    }
+                )
             }
         }
         Catch {
@@ -107,8 +119,8 @@ Process {
                     Write-Warning "'$($P.PrinterName)' Error '$($P.Error -join ', ')'"
                 }
                 elseif (
-                    ($PreInstalledPrinters.Name -contains $P.PrinterName) -and
-                    ($PostInstalledPrinters.Name -notcontains $P.PrinterName)
+                    ($preInstalledPrinters.Name -contains $P.PrinterName) -and
+                    ($PostInstalledPrinters.Name -notContains $P.PrinterName)
                 ) {
                     $P.Status = 'Removed'
                 }
