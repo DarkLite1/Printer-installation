@@ -88,7 +88,7 @@ Describe 'when a printer' {
             Get-Printer |
             Where-Object Name -EQ $testInstalledPrinters[0].PrinterName |
             Should -BeNullOrEmpty
-        } -Tag test
+        }
         It 'the printer port is removed' {
             Get-PrinterPort |
             Where-Object Name -EQ $testInstalledPrinters[0].PortName |
