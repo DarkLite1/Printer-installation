@@ -2,6 +2,8 @@
 #Requires -Version 5.1
 
 BeforeAll {
+    $testDriver = 'HP LaserJet 4000 Series PCL6'
+
     $testPrinter = [PSCustomObject]@{
         Status          = $null
         PrinterName     = 'PesterTestPrinter'
@@ -22,10 +24,7 @@ BeforeAll {
         Action          = @()
         Error           = $null
     }
-    
-    # $testDriver = 'HP Universal Printing PCL 6'
-    $testDriver ='HP Officejet Pro L7700 Series'
-   
+
     Function Remove-TestPrintersHC {
         Get-Printer -Name "$($testPrinter.PrinterName)*" -EA Ignore | Remove-Printer -EA Ignore
     }
@@ -33,7 +32,7 @@ BeforeAll {
         $RetryTimes = 17
         $R = 0
         $Done = $false
-    
+
         while (($R -le $RetryTimes) -and (-not $Done)) {
             Try {
                 Get-PrinterPort -Name "$($testPrinter.PortName)*" -EA Ignore | Remove-PrinterPort -EA Stop
@@ -45,16 +44,20 @@ BeforeAll {
                 Write-Verbose "Retry port removal $R"
             }
         }
-    
+
         if (-not $Done) {
             throw $Error[0]
         }
     }
-    
+
     $testScript = $PSCommandPath.Replace('.Tests.ps1', '.ps1')
 
     Remove-TestPrintersHC
     Remove-TestPrinterPortsHC
+}
+AfterAll {
+    Get-Printer -Name 'Pester*' | Remove-Printer -EA Ignore
+    Get-PrinterPort -Name 'Pester*' | Remove-PrinterPort -EA Ignore
 }
 Describe 'Pester pre tests' {
     Context 'Drivers' {
@@ -74,7 +77,7 @@ Describe 'Drivers' {
         BeforeAll {
             Remove-TestPrintersHC
             Remove-PrinterDriver -Name $testDriver -EA Ignore
-            Get-PrinterDriver -Name $testDriver -EA Ignore | 
+            Get-PrinterDriver -Name $testDriver -EA Ignore |
             Should -BeNullOrEmpty
 
             $testP1 = Copy-ObjectHC -Name $testPrinter
@@ -109,7 +112,7 @@ Describe 'Drivers' {
             $Printers.Action | Should -Contain 'Installed driver'
         }
         It 'no error is added' {
-            $Printers.Error | Where-Object { $_ -like '*driver*' } | 
+            $Printers.Error | Where-Object { $_ -like '*driver*' } |
             Should -BeNullOrEmpty
         }
     }
@@ -147,7 +150,7 @@ Describe 'Drivers' {
             $Printers.Action | Should -Not -Contain 'Installed driver'
         }
         It 'no error is added' {
-            $Printers.Error | Where-Object { $_ -like '*driver*' } | 
+            $Printers.Error | Where-Object { $_ -like '*driver*' } |
             Should -BeNullOrEmpty
         }
     }
@@ -193,7 +196,7 @@ Describe 'Drivers' {
             $Printers.Action | Should -Not -Contain 'Installed driver'
         }
         It 'an error is added for each printer' {
-            $Printers.Error | Where-Object { $_ -like '*driver*' } | 
+            $Printers.Error | Where-Object { $_ -like '*driver*' } |
             Should -HaveCount 3
         }
     }
@@ -263,7 +266,7 @@ Describe 'Printer ports' {
 
             Remove-TestPrintersHC
             Remove-PrinterPort -Name $testPrinter.PortName -EA Ignore
-            Get-PrinterPort -Name $testPrinter.PortName -EA Ignore | 
+            Get-PrinterPort -Name $testPrinter.PortName -EA Ignore |
             Should -BeNullOrEmpty
 
             $testParams = @{
@@ -275,12 +278,12 @@ Describe 'Printer ports' {
         It 'installed with the correct PostHostAddress' {
             $testResult = Get-PrinterPort -Name $testPrinter.PortName -EA Ignore
             $testResult.Name | Should -Be $testPrinter.PortName
-            $testResult.PrinterHostAddress | 
+            $testResult.PrinterHostAddress |
             Should -Be $testPrinter.PortHostAddress
         }
         It 'registered as an action' {
-            $Printers | 
-            Where-Object { $_.Action -contains 'Installed printer port' } | 
+            $Printers |
+            Where-Object { $_.Action -contains 'Installed printer port' } |
             Should -Not -BeNullOrEmpty
         }
     }
@@ -322,7 +325,7 @@ Describe 'Printer ports' {
             It 'removed and recreated' {
                 $testResult = Get-PrinterPort -Name $testPrinter.PortName -EA Ignore
                 $testResult.Name | Should -Be $testPrinter.PortName
-                $testResult.PrinterHostAddress | 
+                $testResult.PrinterHostAddress |
                 Should -Be $testPrinter.PortHostAddress
             }
             It 'registered as an action when recreated' {
@@ -363,7 +366,7 @@ Describe 'Printer ports' {
 
                     $testResult = Get-PrinterPort -Name $testPrinter.PortName -EA Ignore
                     $testResult.Name | Should -Be $testPrinter.PortName
-                    $testResult.PrinterHostAddress | 
+                    $testResult.PrinterHostAddress |
                     Should -Be $IncorrectPortHostAddress
                     #endregion
 
@@ -390,7 +393,7 @@ Describe 'Printer ports' {
                 It 'corrected by being removed and recreated' {
                     $testResult = Get-PrinterPort -Name $testPrinter.PortName -EA Ignore
                     $testResult.Name | Should -Be $testPrinter.PortName
-                    $testResult.PrinterHostAddress | 
+                    $testResult.PrinterHostAddress |
                     Should -Be $testPrinter.PortHostAddress
                 }
                 It 'registered as an action when they are corrected' {
@@ -408,7 +411,7 @@ Describe 'Printer ports' {
                     Add-PrinterPort -Name $testPrinter.PortName -PrinterHostAddress $IncorrectPortHostAddress
                     $testResult = Get-PrinterPort -Name $testPrinter.PortName -EA Ignore
                     $testResult.Name | Should -Be $testPrinter.PortName
-                    $testResult.PrinterHostAddress | 
+                    $testResult.PrinterHostAddress |
                     Should -Be $IncorrectPortHostAddress
                     #endregion
 
@@ -562,7 +565,7 @@ Describe 'Printers' {
                 Add-PrinterPort -Name $testPrinter.PortName -PrinterHostAddress $IncorrectPortHostAddress
                 $testResult = Get-PrinterPort -Name $testPrinter.PortName -EA Ignore
                 $testResult.Name | Should -Be $testPrinter.PortName
-                $testResult.PrinterHostAddress | 
+                $testResult.PrinterHostAddress |
                 Should -Be $IncorrectPortHostAddress
                 #endregion
 
@@ -591,7 +594,7 @@ Describe 'Printers' {
 
                 $testResult = Get-PrinterPort -Name $testPrinter.PortName -EA Ignore
                 $testResult.Name | Should -Be $testPrinter.PortName
-                $testResult.PrinterHostAddress | 
+                $testResult.PrinterHostAddress |
                 Should -Be $testPrinter.PortHostAddress
             }
             It 'registered as an action when corrected' {
