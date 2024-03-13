@@ -46,8 +46,8 @@ BeforeAll {
         }
     )
 
-    Get-Printer -Name 'Pester*' | Remove-Printer
-    Get-PrinterPort -Name 'Pester*' | Remove-PrinterPort
+    Get-Printer -Name 'Pester*' | Remove-Printer -EA Ignore
+    Get-PrinterPort -Name 'Pester*' | Remove-PrinterPort -EA Ignore
 
     $testScript = $PSCommandPath.Replace('.Tests.ps1', '.ps1')
 
@@ -55,8 +55,8 @@ BeforeAll {
     Mock Write-EventLog
 }
 AfterAll {
-    Get-Printer -Name 'Pester*' | Remove-Printer
-    Get-PrinterPort -Name 'Pester*' | Remove-PrinterPort
+    Get-Printer -Name 'Pester*' | Remove-Printer -EA Ignore
+    Get-PrinterPort -Name 'Pester*' | Remove-PrinterPort -EA Ignore
 }
 
 Describe 'when a printer' {
